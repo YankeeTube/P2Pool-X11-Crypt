@@ -60,6 +60,7 @@ X11 관련 모듈 설치
 ---------------------------------------
 .. code-block:: bash
 
+    mkvirtualenv p2p
     pip install x11-hash
     git clone https://github.com/lhartikk/xcoin-hash.git
     cd xcoin-hash
