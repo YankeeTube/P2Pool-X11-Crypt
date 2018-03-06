@@ -28,43 +28,19 @@ P2Pool-Crypt-X11
 ----------------------------
 .. code-block:: bash
 
-    sudo apt-get install python python-pip git curl vim wget -y 
-
-
-파이썬 패키지 업그레이드 및 가상환경 설치
------------------------------------------
-.. code-block:: bash
-
+    sudo apt install python python-pip git curl vim wget -y
+    sudo apt-get install python-zope.interface python-twisted python-twisted-web -y
     sudo pip install --upgrade pip
-    sudo pip install virtualenv virtualenvwrapper
-    mkdir ~/.virtualenvs
-    sudo vim .bashrc
-
-
-.bashrc 내용 수정(맨 아래 추가)
--------------------------------
-.. code-block:: bash
-
-    export WORKON_HOME=~/.virtualenvs
-    source /usr/local/bin/virtualenvwrapper.sh
-
-
-재부팅
-------
-.. code-block:: bash
-
-    sudo reboot now
 
 
 X11 관련 모듈 설치
 ---------------------------------------
 .. code-block:: bash
 
-    mkvirtualenv p2p
-    pip install x11-hash
-    git clone https://github.com/lhartikk/xcoin-hash.git
-    cd xcoin-hash
-    sudo python setup.py install --user
+    
+    git clone https://github.com/YankeeTube/P2Pool-X11-Crypt.git
+    cd P2Pool-X11-Crypt/xcoin-hash-master
+    sudo python setup.py install
     
     
 
