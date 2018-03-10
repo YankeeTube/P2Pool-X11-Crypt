@@ -29,7 +29,9 @@ P2Pool-Crypt-X11
 .. code-block:: bash
 
     sudo apt install python python-pip git curl vim wget -y
-    sudo apt-get install python-zope.interface python-twisted python-twisted-web -y
+    sudo apt install python-zope.interface python-twisted python-twisted-web -y
+    sudo apt install python-setuptools libffi-dev libyaml-dev libssl-dev -y
+    sudo apt install python-dev -y
     sudo pip install --upgrade pip
 
 
