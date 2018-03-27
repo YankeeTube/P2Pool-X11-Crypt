@@ -103,7 +103,8 @@ class VarIntType(Type):
         elif first == 0xfe:
             desc, length, minimum = '<I', 4, 2**16
         elif first == 0xff:
-            desc, length, minimum = '<Q', 8, 2**32
+            # desc, length, minimum = '<Q', 8, 2**32
+            desc, length, minimum = '<Q', 8, 2**20
         else:
             raise AssertionError()
         data2, file = read(file, length)
