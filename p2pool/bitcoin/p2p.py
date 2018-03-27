@@ -20,7 +20,7 @@ class Protocol(p2protocol.Protocol):
     def connectionMade(self):
         self.send_version(
             # version=60013,
-            version=70002,
+            version=60013,
             services=1,
             time=int(time.time()),
             addr_to=dict(
@@ -66,7 +66,7 @@ class Protocol(p2protocol.Protocol):
     
     message_inv = pack.ComposedType([
         ('invs', pack.ListType(pack.ComposedType([
-            ('type', pack.EnumType(pack.IntType(32), {1: 'tx', 2: 'block', 3: 'txlock_request', 4: 'txlock_vote', 5: 'spork', 6: 'masternode_winner'})),
+            ('type', pack.EnumType(pack.IntType(32), {1: 'tx', 2: 'block'})),
             ('hash', pack.IntType(256)),
         ]))),
     ])
@@ -150,16 +150,6 @@ class Protocol(p2protocol.Protocol):
     ])
     def handle_alert(self, message, signature):
         pass # print 'ALERT:', (message, signature)
-
-    message_reject = pack.ComposedType([
-        ('message', pack.VarStrType()),
-        ('ccode', pack.IntType(8)),
-        ('reason', pack.VarStrType()),
-        ('data', pack.IntType(256)),
-    ])
-    def handle_reject(self, message, ccode, reason, data):
-        if p2pool.DEBUG:
-            print >>sys.stderr, 'Received reject message (%s): %s' % (message, reason)
 
     def connectionLost(self, reason):
         if hasattr(self.factory, 'gotConnection'):
