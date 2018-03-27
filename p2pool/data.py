@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 from __future__ import division
 
 import hashlib
@@ -174,7 +175,7 @@ class Share(object):
             raise ValueError()
         
         dests = sorted(amounts.iterkeys(), key=lambda script: (script == DONATION_SCRIPT, amounts[script], script))[-4000:] # block length limit, unlikely to ever be hit
-        
+        print ("[DEBUG - data.py(177)] : desired_timestamp is {}".format(desired_timestamp))
         share_info = dict(
             share_data=share_data,
             far_share_hash=None if last is None and height < 99 else tracker.get_nth_parent_hash(share_data['previous_share_hash'], 99),
@@ -186,10 +187,11 @@ class Share(object):
             )) if previous_share is not None else desired_timestamp,
             new_transaction_hashes=new_transaction_hashes,
             transaction_hash_refs=transaction_hash_refs,
-            absheight=((previous_share.absheight if previous_share is not None else 0) + 1) % 2**32,
+            # absheight=((previous_share.absheight if previous_share is not None else 0) + 1) % 2**32,
+            absheight=((previous_share.absheight if previous_share is not None else 0) + 1) % 2**20,
             abswork=((previous_share.abswork if previous_share is not None else 0) + bitcoin_data.target_to_average_attempts(bits.target)) % 2**128,
         )
-        
+        print ("[DEBUG - data.py(192)] : Generate share_info timestamp {}".format(share_info['timestamp']))
         gentx = dict(
             version=1,
             # coinbase timestamp must be older than share/block timestamp
@@ -230,14 +232,16 @@ class Share(object):
         ))), ref_merkle_link))
     
     __slots__ = 'net peer_addr contents min_header share_info hash_link merkle_link hash share_data max_target target timestamp previous_hash new_script desired_version gentx_hash header pow_hash header_hash new_transaction_hashes time_seen absheight abswork'.split(' ')
-    
+
     def __init__(self, net, peer_addr, contents):
         self.net = net
         self.peer_addr = peer_addr
         self.contents = contents
+        print ("[DEBUG - data.py(238)] : What is Contents? : ".format(contents))
         
         self.min_header = contents['min_header']
         self.share_info = contents['share_info']
+        print ("[DEBUG - data.py(243)] : self.share_info timestamp = {}".format(self.share_info['timestamp']))
         self.hash_link = contents['hash_link']
         self.merkle_link = contents['merkle_link']
         
@@ -319,6 +323,8 @@ class Share(object):
         other_tx_hashes = [tracker.items[tracker.get_nth_parent_hash(self.hash, share_count)].share_info['new_transaction_hashes'][tx_count] for share_count, tx_count in self.iter_transaction_hash_refs()]
         
         share_info, gentx, other_tx_hashes2, get_share = self.generate_transaction(tracker, self.share_info['share_data'], self.header['bits'].target, self.share_info['timestamp'], self.share_info['bits'].target, self.contents['ref_merkle_link'], [(h, None) for h in other_tx_hashes], self.net, last_txout_nonce=self.contents['last_txout_nonce'])
+        print ("[DEBUG - data.py(325)] : Now Time is {}".format(int(time.time())))
+        print ("[DEBUG - data.py(324)] : share_info timestamp is {}".format(share_info['timestamp']))
         assert other_tx_hashes2 == other_tx_hashes
 # workaround
         if share_info != self.share_info:
@@ -632,7 +638,8 @@ def get_warnings(tracker, best_share, net, bitcoind_getinfo, bitcoind_work_value
 def format_hash(x):
     if x is None:
         return 'xxxxxxxx'
-    return '%08x' % (x % 2**32)
+    # return '%08x' % (x % 2**32)
+    return '%08x' % (x % 2 ** 20)
 
 class ShareStore(object):
     def __init__(self, prefix, net, share_cb, verified_hash_cb):

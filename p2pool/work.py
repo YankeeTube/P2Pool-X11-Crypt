@@ -1,11 +1,13 @@
+# -*- coding:utf-8 -*-
 from __future__ import division
 
 import base64
 import random
 import re
 import sys
-import time
+import time,logging
 
+from colorama import Fore,init
 from twisted.internet import defer
 from twisted.python import log
 
@@ -14,6 +16,8 @@ from bitcoin import helper, script, worker_interface
 from util import forest, jsonrpc, variable, deferral, math, pack
 import p2pool, p2pool.data as p2pool_data
 
+
+init(autoreset=True)
 class WorkerBridge(worker_interface.WorkerBridge):
     COINBASE_NONCE_LENGTH = 8
     
@@ -44,10 +48,24 @@ class WorkerBridge(worker_interface.WorkerBridge):
         self.tracker_view = forest.TrackerView(self.node.tracker, forest.get_attributedelta_type(dict(forest.AttributeDelta.attrs,
             my_count=lambda share: 1 if share.hash in self.my_share_hashes else 0,
             my_doa_count=lambda share: 1 if share.hash in self.my_doa_share_hashes else 0,
-            my_orphan_announce_count=lambda share: 1 if share.hash in self.my_share_hashes and share.share_data['stale_info'] == 'orphan' else 0,
-            my_dead_announce_count=lambda share: 1 if share.hash in self.my_share_hashes and share.share_data['stale_info'] == 'doa' else 0,
+            my_orphan_announce_count=lambda share: 1 if share.hash in self.my_share_hashes and share.share_data['stale_info'] == 'orphan' else 0, # 고아
+            my_dead_announce_count=lambda share: 1 if share.hash in self.my_share_hashes and share.share_data['stale_info'] == 'doa' else 0, # 죽음
         )))
-        
+
+
+        # Python Logger
+        self.logger = logging.getLogger('pool_log')
+        fomatter = logging.Formatter('[%(levelname)s|%(filename)s - %(lineno)s] : %(message)s')
+
+        fileHandler = logging.FileHandler('./difficulty.log')
+        streamHandler = logging.StreamHandler()
+
+        fileHandler.setFormatter(fomatter)
+        streamHandler.setFormatter(fomatter)
+
+        self.logger.addHandler(fileHandler)
+        self.logger.addHandler(streamHandler)
+
         @self.node.tracker.verified.removed.watch
         def _(share):
             if share.hash in self.my_share_hashes and self.node.tracker.is_child_of(share.hash, self.node.best_share_var.value):
@@ -86,8 +104,8 @@ class WorkerBridge(worker_interface.WorkerBridge):
         
         self.current_work = variable.Variable(None)
         def compute_work():
-            t = self.node.bitcoind_work.value
-            bb = self.node.best_block_header.value
+            t = self.node.bitcoind_work.value # nTime?
+            bb = self.node.best_block_header.value # Tx?
             if bb is not None and bb['previous_block'] == t['previous_block'] and bitcoin_data.scrypt(bitcoin_data.block_header_type.pack(bb)) <= t['bits'].target:
                 print 'Skipping from block %x to block %x!' % (bb['previous_block'],
                     #bitcoin_data.hash256(bitcoin_data.block_header_type.pack(bb)))
@@ -98,7 +116,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                     bits=self.node.pow_bits, # not always true
                     coinbaseflags='',
                     height=t['height'] + 1,
-                    time=t['time'] + 30, # better way?
+                    time=bb['time'] + 600, # better way?
                     transactions=[],
                     transaction_fees=[],
                     txn_timestamp=0,
@@ -267,6 +285,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
         
         if True:
             desired_timestamp = int(time.time() + 0.5)
+            print ("[DEBUG - work.py(270] : Before desired_timestamp = {}".format(desired_timestamp))
             share_info, gentx, other_transaction_hashes, get_share = share_type.generate_transaction(
                 tracker=self.node.tracker,
                 share_data=dict(
@@ -275,7 +294,8 @@ class WorkerBridge(worker_interface.WorkerBridge):
                         self.current_work.value['height'],
                         ] + ([mm_data] if mm_data else []) + [
                     ]) + self.current_work.value['coinbaseflags'])[:100],
-                    nonce=random.randrange(2**32),
+                    # nonce=random.randrange(2**32),
+                    nonce=random.randrange(2 ** 20),
                     pubkey_hash=pubkey_hash,
                     subsidy=self.current_work.value['subsidy'],
                     donation=math.perfect_round(65535*self.donation_percentage/100),
@@ -287,7 +307,8 @@ class WorkerBridge(worker_interface.WorkerBridge):
                     desired_version=(share_type.SUCCESSOR if share_type.SUCCESSOR is not None else share_type).VOTING_VERSION,
                 ),
                 block_target=self.current_work.value['bits'].target,
-                desired_timestamp=desired_timestamp if txn_timestamp < desired_timestamp else txn_timestamp + 1,
+                desired_timestamp=desired_timestamp,
+                # desired_timestamp=desired_timestamp if txn_timestamp < desired_timestamp else txn_timestamp + 1,
                 desired_target=desired_share_target,
                 ref_merkle_link=dict(branch=[], index=0),
                 desired_other_transaction_hashes_and_fees=zip(tx_hashes, self.current_work.value['transaction_fees']),
@@ -319,23 +340,29 @@ class WorkerBridge(worker_interface.WorkerBridge):
         lp_count = self.new_work_event.times
         merkle_link = bitcoin_data.calculate_merkle_link([None] + other_transaction_hashes, 0)
         
-        print 'New work for worker! Difficulty: %.06f Share difficulty: %.06f Total block value: %.6f %s including %i transactions' % (
+        print Fore.LIGHTYELLOW_EX + 'New work for worker! Difficulty: %.06f Share difficulty: %.06f Total block value: %.6f %s including %i transactions' % (
             bitcoin_data.target_to_difficulty(target),
             bitcoin_data.target_to_difficulty(share_info['bits'].target),
             self.current_work.value['subsidy']*1e-8, self.node.net.PARENT.SYMBOL,
             len(self.current_work.value['transactions']),
         )
+        self.logger.info(Fore.LIGHTYELLOW_EX + 'New work for worker! Difficulty: %.06f Share difficulty: %.06f Total block value: %.6f %s including %i transactions' % (
+            bitcoin_data.target_to_difficulty(target),
+            bitcoin_data.target_to_difficulty(share_info['bits'].target),
+            self.current_work.value['subsidy'] * 1e-8, self.node.net.PARENT.SYMBOL,
+            len(self.current_work.value['transactions']),
+        ))
 
         #need this for stats
         self.last_work_shares.value[bitcoin_data.pubkey_hash_to_address(pubkey_hash, self.node.net.PARENT)]=share_info['bits']
 
         ba = dict(
-            version=min(self.current_work.value['version'], 2),
+            version=min(self.current_work.value['version'], 7),
             previous_block=self.current_work.value['previous_block'],
             merkle_link=merkle_link,
             coinb1=packed_gentx[:-self.COINBASE_NONCE_LENGTH-4],
             coinb2=packed_gentx[-4:],
-            timestamp=self.current_work.value['time'] + 100,
+            timestamp=self.current_work.value['time'] +10, # nTime
             bits=self.current_work.value['bits'],
             share_target=target,
         )

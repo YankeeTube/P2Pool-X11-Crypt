@@ -9,22 +9,22 @@ from p2pool.util import math
 
 nets = dict(
 
- cryptcoin=math.Object(
-        PARENT=networks.nets['cryptcoin'],
-        SHARE_PERIOD=15, # seconds
+ soomcoin=math.Object(
+        PARENT=networks.nets['soomcoin'],
+        SHARE_PERIOD=18, # (BLOCK PERIOD / 5)
         CHAIN_LENGTH=24*60*60//15, # shares
         REAL_CHAIN_LENGTH=24*60*60//15, # shares
-        TARGET_LOOKBEHIND=50, # shares  //with that the pools share diff is adjusting faster, important if huge hashing power comes to the pool
-        SPREAD=30, # blocks
-        IDENTIFIER='496247d4aa471124'.decode('hex'),
-        PREFIX='5685a273ddee4458'.decode('hex'),
-        P2P_PORT=8170,
+        TARGET_LOOKBEHIND=5, # shares  //with that the pools share diff is adjusting faster, important if huge hashing power comes to the pool
+        SPREAD=20, # blocks | 600/[blockTime] = x *3 = Spread
+        IDENTIFIER='1bfe41c80cb80be9'.decode('hex'), # 2017-12-20 10:57:12 13801
+        PREFIX='1bfe41c80cb80fd1'.decode('hex'), # 2017-12-20 10:57:12 14801
+        P2P_PORT=3334,
         MIN_TARGET=0,
         MAX_TARGET=2**256//2**20 - 1,
         PERSIST=False,
-        WORKER_PORT=8171,
-        BOOTSTRAP_ADDRS='crypto.office-on-the.net'.split(' '),
-        ANNOUNCE_CHANNEL='#p2pool-cry',
+        WORKER_PORT=13333,
+        BOOTSTRAP_ADDRS='192.168.200.100'.split(' '),
+        ANNOUNCE_CHANNEL='#p2pool-alt',
         VERSION_CHECK=lambda v: True,
     ),
 

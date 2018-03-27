@@ -107,7 +107,8 @@ def get_web_root(wb, datadir_path, bitcoind_getinfo_var, stop_event=variable.Eve
             pool_stale_prop=stale_prop,
             min_difficulty=bitcoin_data.target_to_difficulty(node.tracker.items[node.best_share_var.value].max_target),
             network_block_difficulty=diff,
-            network_hashrate=(diff * 2**32 // node.net.PARENT.BLOCK_PERIOD),
+            # network_hashrate=(diff * 2**32 // node.net.PARENT.BLOCK_PERIOD),
+            network_hashrate=(diff * 2 ** 20 // node.net.PARENT.BLOCK_PERIOD),
         )
     
     def get_local_stats():
