@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 from __future__ import division
 
 import base64
@@ -25,9 +26,13 @@ from util import fixargparse, jsonrpc, variable, deferral, math, logging, switch
 from . import networks, web, work
 import p2pool, p2pool.data as p2pool_data, p2pool.node as p2pool_node
 
+from colorama import Fore, init
+
+
 @defer.inlineCallbacks
 def main(args, net, datadir_path, merged_urls, worker_endpoint):
     try:
+        init(autoreset=True)
         print 'p2pool (version %s)' % (p2pool.__version__,)
         print
 
@@ -230,23 +235,26 @@ def main(args, net, datadir_path, merged_urls, worker_endpoint):
         # done!
         print 'Started successfully!'
         print 'Go to http://127.0.0.1:%i/ to view graphs and statistics!' % (worker_endpoint[1],)
-        if args.donation_percentage > 1.1:
-            print '''Donating %.1f%% of work towards P2Pool's development. Thanks for the tip!''' % (args.donation_percentage,)
-        elif args.donation_percentage < .9:
-            print '''Donating %.1f%% of work towards P2Pool's development. Please donate to encourage further development of P2Pool!''' % (args.donation_percentage,)
-        else:
-            print '''Donating %.1f%% of work towards P2Pool's development. Thank you!''' % (args.donation_percentage,)
-            print 'You can increase this amount with --give-author argument! (or decrease it, if you must)'
+
+        # 기부 유도
+        # if args.donation_percentage > 1.1:
+        #     print '''Donating %.1f%% of work towards P2Pool's development. Thanks for the tip!''' % (args.donation_percentage,)
+        # elif args.donation_percentage < .9:
+        #     print '''Donating %.1f%% of work towards P2Pool's development. Please donate to encourage further development of P2Pool!''' % (args.donation_percentage,)
+        # else:
+        #     print '''Donating %.1f%% of work towards P2Pool's development. Thank you!''' % (args.donation_percentage,)
+        #     print 'You can increase this amount with --give-author argument! (or decrease it, if you must)'
+
         print
-        
-        
+
+
         if hasattr(signal, 'SIGALRM'):
             signal.signal(signal.SIGALRM, lambda signum, frame: reactor.callFromThread(
                 sys.stderr.write, 'Watchdog timer went off at:\n' + ''.join(traceback.format_stack())
             ))
             signal.siginterrupt(signal.SIGALRM, False)
             deferral.RobustLoopingCall(signal.alarm, 30).start(1)
-        
+
         if args.irc_announce:
             from twisted.words.protocols import irc
             class IRCClient(irc.IRCClient):
@@ -290,7 +298,7 @@ def main(args, net, datadir_path, merged_urls, worker_endpoint):
             class IRCClientFactory(protocol.ReconnectingClientFactory):
                 protocol = IRCClient
             reactor.connectTCP("irc.freenode.net", 6667, IRCClientFactory(), bindAddress=(worker_endpoint[0], 0))
-        
+
         @defer.inlineCallbacks
         def status_thread():
             last_str = None
@@ -306,7 +314,7 @@ def main(args, net, datadir_path, merged_urls, worker_endpoint):
                         len(node.p2p_node.peers),
                         sum(1 for peer in node.p2p_node.peers.itervalues() if peer.incoming),
                     ) + (' FDs: %i R/%i W' % (len(reactor.getReaders()), len(reactor.getWriters())) if p2pool.DEBUG else '')
-                    
+
                     datums, dt = wb.local_rate_monitor.get_datums_in_last()
                     my_att_s = sum(datum['work']/dt for datum in datums)
                     my_shares_per_s = sum(datum['work']/dt/bitcoin_data.target_to_average_attempts(datum['share_target']) for datum in datums)
@@ -316,12 +324,12 @@ def main(args, net, datadir_path, merged_urls, worker_endpoint):
                         math.format_binomial_conf(sum(1 for datum in datums if datum['dead']), len(datums), 0.95),
                         math.format_dt(1/my_shares_per_s) if my_shares_per_s else '???',
                     )
-                    
+
                     if height > 2:
                         (stale_orphan_shares, stale_doa_shares), shares, _ = wb.get_stale_counts()
                         stale_prop = p2pool_data.get_average_stale_prop(node.tracker, node.best_share_var.value, min(60*60//net.SHARE_PERIOD, height))
                         real_att_s = p2pool_data.get_pool_attempts_per_second(node.tracker, node.best_share_var.value, min(height - 1, 60*60//net.SHARE_PERIOD)) / (1 - stale_prop)
-                        
+
                         this_str += '\n Shares: %i (%i orphan, %i dead) Stale rate: %s Efficiency: %s Current payout: %.4f %s' % (
                             shares, stale_orphan_shares, stale_doa_shares,
                             math.format_binomial_conf(stale_orphan_shares + stale_doa_shares, shares, 0.95),
@@ -333,17 +341,18 @@ def main(args, net, datadir_path, merged_urls, worker_endpoint):
                             100*stale_prop,
                             math.format_dt(2**256 / node.bitcoind_work.value['bits'].target / real_att_s),
                         )
-                        
+
                         for warning in p2pool_data.get_warnings(node.tracker, node.best_share_var.value, net, bitcoind_getinfo_var.value, node.bitcoind_work.value):
                             print >>sys.stderr, '#'*40
                             print >>sys.stderr, '>>> Warning: ' + warning
                             print >>sys.stderr, '#'*40
-                        
+
                         if gc.garbage:
                             print '%i pieces of uncollectable cyclic garbage! Types: %r' % (len(gc.garbage), map(type, gc.garbage))
-                    
+
                     if this_str != last_str or time.time() > last_time + 15:
                         print this_str
+                        print Fore.LIGHTBLUE_EX + "Completed Share Chain Download"
                         last_str = this_str
                         last_time = time.time()
                 except:
@@ -358,9 +367,9 @@ def run():
         print "Twisted doesn't have abortConnection! Upgrade to a newer version of Twisted to avoid memory leaks!"
         print 'Pausing for 3 seconds...'
         time.sleep(3)
-    
+
     realnets = dict((name, net) for name, net in networks.nets.iteritems() if '_testnet' not in name)
-    
+
     parser = fixargparse.FixedArgumentParser(description='p2pool (version %s)' % (p2pool.__version__,), fromfile_prefix_chars='@')
     parser.add_argument('--version', action='version', version=p2pool.__version__)
     parser.add_argument('--net',
@@ -530,6 +539,7 @@ def run():
         userpass, new_netloc = s.netloc.rsplit('@', 1)
         return urlparse.urlunsplit(s._replace(netloc=new_netloc)), userpass
     merged_urls = map(separate_url, args.merged_urls)
+    # 2018.03.14 여기까지 확인함
     
     if args.logfile is None:
         args.logfile = os.path.join(datadir_path, 'log')

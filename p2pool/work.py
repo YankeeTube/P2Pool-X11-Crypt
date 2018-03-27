@@ -295,7 +295,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                         ] + ([mm_data] if mm_data else []) + [
                     ]) + self.current_work.value['coinbaseflags'])[:100],
                     # nonce=random.randrange(2**32),
-                    nonce=random.randrange(2 ** 20),
+                    nonce=random.randrange(2 ** 32),
                     pubkey_hash=pubkey_hash,
                     subsidy=self.current_work.value['subsidy'],
                     donation=math.perfect_round(65535*self.donation_percentage/100),
