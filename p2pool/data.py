@@ -638,8 +638,7 @@ def get_warnings(tracker, best_share, net, bitcoind_getinfo, bitcoind_work_value
 def format_hash(x):
     if x is None:
         return 'xxxxxxxx'
-    # return '%08x' % (x % 2**32)
-    return '%08x' % (x % 2 ** 20)
+    return '%08x' % (x % 2**32)
 
 class ShareStore(object):
     def __init__(self, prefix, net, share_cb, verified_hash_cb):
