@@ -16,24 +16,33 @@ k = [
 
 def process(state, chunk):
     def rightrotate(x, n):
-        return (x >> n) | (x << 32 - n) % 2**32
+        return (x >> n) | (x << 32 - n) % 2 ** 20
+        # return (x >> n) | (x << 32 - n) % 2**32
     
     w = list(struct.unpack('>16I', chunk))
     for i in xrange(16, 64):
         s0 = rightrotate(w[i-15], 7) ^ rightrotate(w[i-15], 18) ^ (w[i-15] >> 3)
         s1 = rightrotate(w[i-2], 17) ^ rightrotate(w[i-2], 19) ^ (w[i-2] >> 10)
-        w.append((w[i-16] + s0 + w[i-7] + s1) % 2**32)
+        # w.append((w[i-16] + s0 + w[i-7] + s1) % 2**32)
+        w.append((w[i - 16] + s0 + w[i - 7] + s1) % 2 ** 20)
     
     a, b, c, d, e, f, g, h = start_state = struct.unpack('>8I', state)
     for k_i, w_i in zip(k, w):
-        t1 = (h + (rightrotate(e, 6) ^ rightrotate(e, 11) ^ rightrotate(e, 25)) + ((e & f) ^ (~e & g)) + k_i + w_i) % 2**32
+        # t1 = (h + (rightrotate(e, 6) ^ rightrotate(e, 11) ^ rightrotate(e, 25)) + ((e & f) ^ (~e & g)) + k_i + w_i) % 2**32
+        t1 = (h + (rightrotate(e, 6) ^ rightrotate(e, 11) ^ rightrotate(e, 25)) + ((e & f) ^ (~e & g)) + k_i + w_i) % 2 ** 20
         
+        # a, b, c, d, e, f, g, h = (
+        #     (t1 + (rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) % 2**32,
+        #     a, b, c, (d + t1) % 2**32, e, f, g,
+        # )
         a, b, c, d, e, f, g, h = (
-            (t1 + (rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) % 2**32,
-            a, b, c, (d + t1) % 2**32, e, f, g,
+            (t1 + (rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22)) + (
+            (a & b) ^ (a & c) ^ (b & c))) % 2 ** 20,
+            a, b, c, (d + t1) % 2 ** 32, e, f, g,
         )
     
-    return struct.pack('>8I', *((x + y) % 2**32 for x, y in zip(start_state, [a, b, c, d, e, f, g, h])))
+    # return struct.pack('>8I', *((x + y) % 2**32 for x, y in zip(start_state, [a, b, c, d, e, f, g, h])))
+    return struct.pack('>8I', *((x + y) % 2**20 for x, y in zip(start_state, [a, b, c, d, e, f, g, h])))
 
 
 initial_state = struct.pack('>8I', 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19)

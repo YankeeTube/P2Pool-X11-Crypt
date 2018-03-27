@@ -96,12 +96,13 @@ tx_type = pack.ComposedType([
     ('version', pack.IntType(32)),
     ('timestamp', pack.IntType(32)), # txn timestamp
     ('tx_ins', pack.ListType(pack.ComposedType([
-        ('previous_output', pack.PossiblyNoneType(dict(hash=0, index=2**32 - 1), pack.ComposedType([
+        ('previous_output', pack.PossiblyNoneType(dict(hash=0, index=2**20 - 1), pack.ComposedType([
             ('hash', pack.IntType(256)),
             ('index', pack.IntType(32)),
         ]))),
         ('script', pack.VarStrType()),
-        ('sequence', pack.PossiblyNoneType(2**32 - 1, pack.IntType(32))),
+        ('sequence', pack.PossiblyNoneType(2**20 - 1, pack.IntType(32))),
+        # ('sequence', pack.PossiblyNoneType(2**32 - 1, pack.IntType(32))),
     ]))),
     ('tx_outs', pack.ListType(pack.ComposedType([
         ('value', pack.IntType(64)),
